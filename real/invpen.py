@@ -120,8 +120,8 @@ class Invpen():
                     diff = sample_time - (end - start)
                 timestamp = elapsed_time()
 
-        except Exception as e:
-            print(e)
+        # except Exception as e:
+        #     print(e)
         finally:
             self.io_device.terminate()
             self.agent.after_termination_func(self.data)
