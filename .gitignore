@@ -3,3 +3,4 @@ logs/
 .ideaW
 __pycache__
 settings.json
+test.py
