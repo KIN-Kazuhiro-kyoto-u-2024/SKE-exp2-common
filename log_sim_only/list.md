@@ -19,3 +19,31 @@
         return rew, 1 if bonus > 0 else 0
 
   - \ 07-04-16-12-48\
+- 角速度にもペナルティを設定
+
+        # 倒立状態の維持に失敗したときの報酬
+        if done:
+            return -10, 0
+        
+        # 報酬（rew）の設定
+        # rew の与え方を色々変更してみる
+        d = self._config.num_digitized
+        n_pendulum_rad, n_pendulum_vel = state_dict["n_pendulum_rad"], state_dict["n_pendulum_vel"]
+        n_best = (d - 1) / 2
+        n_arm_rad, n_arm_vel = state_dict["n_arm_rad"], state_dict["n_arm_vel"]
+        n_arm_best = (d - 1) / 2
+        bonus = 0
+        if n_pendulum_rad == n_best:
+            bonus = 1
+        else:
+            bonus = 0
+        rew = 10
+        theta_diff = abs(n_arm_rad - n_arm_best) # 手前のうで
+        alpha_diff = abs(n_pendulum_rad - n_best) # 先端のほう
+        rew -= alpha_diff * 0.5
+        rew -= abs(state_dict["arm_vel"]) * 0.1
+        rew -= abs(state_dict["pendulum_vel"]) * 0.5
+        rew -= abs(theta_diff) * 0.1
+        return rew, 1 if bonus > 0 else 
+
+    - \06-04-17-19-38
