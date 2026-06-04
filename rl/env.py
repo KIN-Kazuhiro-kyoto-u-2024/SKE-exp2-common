@@ -13,8 +13,7 @@ def make_env(config):
             return Balance(config)
         elif config.task == "sys_iden":
             return SysIden(config)
-    else:
-        raise NotImplementedError
+    raise NotImplementedError
 
 
 class Balance:
@@ -235,7 +234,7 @@ class SwingUp:
         return digitized_state
 
     def _get_reward(self, state_dict, done):
-        pass
+        raise NotImplementedError
 
     def _digitized_state(self, obs):
         # 0 is positive z axis at doule pendulum pendulum angle
@@ -291,7 +290,7 @@ def main():
         alpha: float = 0.5
         max_episode: int = int(10e3)
         episode_length: int = 400
-        should_log_model: int = 10e3
+        should_log_model: int = int(10e3)
         should_log_scalar: int = int(10)
         should_log_video: int = int(50)
         restore: bool = False

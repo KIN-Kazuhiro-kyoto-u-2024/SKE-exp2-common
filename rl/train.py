@@ -36,7 +36,7 @@ class EnvConfig:
     restore: bool = False  # 学習を再スタートする場合，これを True とする
     restore_path: str = ""  # QTable の初期値用データのパスを入力（再スタート時）
     video_length: int = 200  # QTable 評価時におけるタイムステップ数
-    logdir: str = pathlib.Path().joinpath(
+    logdir: pathlib.Path = pathlib.Path().joinpath(
         "./logs/train", str(time.strftime("%m-%d-%H-%M-%S"))
     )
 
