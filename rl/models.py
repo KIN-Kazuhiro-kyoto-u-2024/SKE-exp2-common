@@ -21,7 +21,7 @@ class Qtable:
     # 行動の選択
     def get_action(
         self, state, explore=True, global_step=None, method="epsilon-greedy"
-    ):
+    ) -> int:
         if not explore:
             max_action = np.where(self._Qtable[state] == np.max(self._Qtable[state]))[0]
             next_action = np.random.choice(max_action)
@@ -44,6 +44,7 @@ class Qtable:
         elif method == "random":
             next_action = np.random.choice(self.action_arr)
             return next_action
+        raise NotImplementedError
 
     def update_Qtable(self, state, action, reward, next_state):
         next_maxQ = np.max(self._Qtable[next_state])
