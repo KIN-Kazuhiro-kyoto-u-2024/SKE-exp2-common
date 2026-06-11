@@ -62,6 +62,7 @@ def _reward_alpha_only(sd, config):
 REWARD_VARIANTS = {
     "default": _reward_default,
     "alpha_only": _reward_alpha_only,
+    "complex": _complex_reward,
 }
 
 
