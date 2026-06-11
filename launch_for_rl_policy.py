@@ -7,12 +7,12 @@ from dataclasses import dataclass
 import numpy as np
 
 from real.invpen import Invpen
-from rl.env import make_env
+from rl.env import Balance, make_env
 from rl.models import Qtable
 from utils.logger import Logger
 
 
-@dataclass
+@dataclass(frozen=True)
 class EnvConfig:
     domain: str = "double_pendulum"
     task: str = "balance"
@@ -20,7 +20,7 @@ class EnvConfig:
     num_digitized: int = 8  # 離散化の設定（学習時の設定値と合わせる）
     num_action: int = 4  # 離散化の設定（学習時の設定値と合わせる）
     state_size: int = num_digitized**4
-    logdir: str = pathlib.Path().joinpath(
+    logdir: pathlib.Path = pathlib.Path().joinpath(
         "./logs/real-by-rl", str(time.strftime("%m-%d-%H-%M-%S"))
     )
 
@@ -50,7 +50,7 @@ class TrainedAgent:
         self.logger = Logger(config.logdir)
         print(config.restore_path)
         self.qtable.load(config.restore_path)
-        self.env = make_env(config)
+        self.env: Balance = make_env(config)  # Balance以外で動かすことを想定してない？
         self.start = False
         self.data = {"n_alpha": [np.nan], "n_theta": [np.nan]}
 

@@ -32,6 +32,8 @@ class Balance:
             0.9 * np.pi,
         )  # theta の範囲．これを超えたら倒立維持失敗．
 
+        self._arrange = 0  # 実機用：SwingUpでは零行列だったので0でいいはず
+
         print("dt = ", config.repeat * self._env.control_timestep())
         self._digitized_action = np.linspace(
             self._env.action_spec().minimum[0],
