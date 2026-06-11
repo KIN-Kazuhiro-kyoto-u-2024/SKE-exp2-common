@@ -50,7 +50,7 @@ class Agent():
         self.sim_data['theta'].append(state_dict['theta'])
 
         # トルク入力の初期値
-        self.torque = 0.1
+        self.torque = 0
 
     def policy(self, state):
 
@@ -69,7 +69,7 @@ class Agent():
         self.sim_data['dt'].append(0.02)
 
         # トルクの値を徐々に増加させる（必要であれば）
-        # self.torque += 0.001
+        self.torque += 0.0001
         
         return torque
 
@@ -124,7 +124,7 @@ def main():
     agent = Agent(eps=np.pi/15.0)
     invpen = Invpen(agent)
 
-    invpen.run(sample_time=0.020, simulation_time=1.0, figure=True, logging=True)
+    invpen.run(sample_time=0.020, simulation_time=15.0, figure=True, logging=True)
 
 if __name__ == "__main__":
     main()
