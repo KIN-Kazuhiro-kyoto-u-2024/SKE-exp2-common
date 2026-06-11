@@ -179,6 +179,10 @@ class SysIden:
         done = False
         return state_dict, done
 
+    @property
+    def _digitized_action(self):
+        raise NotImplementedError
+
 
 #####################################
 ## 以下は共通課題では不要 #############
