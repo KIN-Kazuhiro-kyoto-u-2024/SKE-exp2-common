@@ -26,6 +26,28 @@ def _reward_default(sd, config):
     # 現状の挙動: 倒立を維持している限り毎ステップ +0.1
     return 0.1, 0
 
+def _complex_reward(sd, config):
+    
+    # 報酬（rew）の設定
+    # rew の与え方を色々変更してみる
+    d = config.num_digitized
+    n_pendulum_rad, n_pendulum_vel = sd["n_pendulum_rad"], sd["n_pendulum_vel"]
+    n_best = (d - 1) / 2
+    n_arm_rad, n_arm_vel = sd["n_arm_rad"], sd["n_arm_vel"]
+    n_arm_best = (d - 1) / 2
+    bonus = 0
+    if n_pendulum_rad == n_best:
+        bonus = 1
+    else:
+        bonus = 0
+    rew = 10
+    theta_diff = abs(n_arm_rad - n_arm_best) # 手前のうで
+    alpha_diff = abs(n_pendulum_rad - n_best) # 先端のほう
+    rew -= alpha_diff * 0.5
+    rew -= abs(sd["arm_vel"]) * 0.1
+    rew -= abs(sd["pendulum_vel"]) * 0.5
+    rew -= abs(theta_diff) * 0.1
+    return rew, 1 if bonus > 0 else 0
 
 def _reward_alpha_only(sd, config):
     # 振り子角 alpha が中央（直立）に近いほど報酬を大きくする
@@ -49,6 +71,9 @@ class Balance:
 
         self._config = config
         d = config.num_digitized
+        # 実機ランチャー（launch.py / launch_for_rl_policy.py）が参照する。
+        # ゼロベクトルなので離散化境界は変わらない。
+        self._arrange = np.zeros(d - 1)
         self._env = balance()
         self._pendulum_limit = (
             -0.20 * np.pi,
