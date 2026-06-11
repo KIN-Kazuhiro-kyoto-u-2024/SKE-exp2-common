@@ -47,3 +47,12 @@
             return rew, 1 if bonus > 0 else 0
     ```
   - \06-04-20-00-18
+- epsilonを指数減衰(k2)
+    k1に加え、models.py内の$\varepsilon$-greedy法の$\varepsilon$を、`0.3 * (0.995**global_step)`とした。
+    ```python
+        ...
+        elif method == "epsilon-greedy":
+            eps = 0.3 * (0.995**global_step) if global_step is not None else 0.2
+        ...
+    ```
+  - \06-05-16-26-42
