@@ -16,6 +16,33 @@ def make_env(config):
     raise NotImplementedError
 
 
+# =====================================================================
+# 報酬バリアント: (state_dict, config) -> (rew, best)
+#   sweep.py から config.reward_variant で選ぶ。新しい報酬式を試したいときは
+#   ここに関数を1つ書いて REWARD_VARIANTS に登録するだけ。
+#   なお done（倒立失敗）時の -10 は _get_reward 側で短絡するのでここでは扱わない。
+# =====================================================================
+def _reward_default(sd, config):
+    # 現状の挙動: 倒立を維持している限り毎ステップ +0.1
+    return 0.1, 0
+
+
+def _reward_alpha_only(sd, config):
+    # 振り子角 alpha が中央（直立）に近いほど報酬を大きくする
+    d = config.num_digitized
+    n_best = (d - 1) / 2
+    err = abs(sd["n_pendulum_rad"] - n_best) / n_best 
+    # 0.0 〜 1.0。これを 1.0 から引いて報酬とする（err が小さいほど報酬が大きい）。
+    # さらに err < 0.5 を best として返す（倒立状態の維持に成功しているかの指標）。
+    return 1.0 - err, (1 if err < 0.5 else 0)
+
+
+REWARD_VARIANTS = {
+    "default": _reward_default,
+    "alpha_only": _reward_alpha_only,
+}
+
+
 class Balance:
 
     def __init__(self, config):
@@ -70,19 +97,9 @@ class Balance:
         if done:
             return -10, 0
 
-        # 報酬（rew）の設定
-        # rew の与え方を色々変更してみる
-        d = self._config.num_digitized
-        n_pendulum_rad, n_pendulum_vel = (
-            state_dict["n_pendulum_rad"],
-            state_dict["n_pendulum_vel"],
-        )
-        n_best = (d - 1) / 2
-        n_arm_rad, n_arm_vel = state_dict["n_arm_rad"], state_dict["n_arm_vel"]
-        n_arm_best = (d - 1) / 2
-        bonus = 0
-        rew = 0.1
-        return rew, 1 if bonus > 0 else 0
+        # 報酬（rew）の設定は env.py 上部の REWARD_VARIANTS から選ぶ
+        # （config.reward_variant で指定。sweep.py から SWEEP_REWARD で切替）
+        return REWARD_VARIANTS[self._config.reward_variant](state_dict, self._config)
 
     def _digitized_state(self, obs):
 

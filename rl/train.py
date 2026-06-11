@@ -28,6 +28,8 @@ class EnvConfig:
     state_size: int = num_digitized**4
     gamma: float = 0.99  # 割引率
     alpha: float = 0.5  # 学習率
+    epsilon: float = 0.2  # epsilon-greedy の epsilon（models.py へ渡す）
+    reward_variant: str = "default"  # env.py の REWARD_VARIANTS のキー
     max_episode: int = int(10e4)  # 学習の総 episode 数
     episode_length: int = 200  # 1 episode のタイムステップ数
     should_log_model: int = 1000  # 何 episode おきに QTable の値を保存するか
@@ -39,6 +41,30 @@ class EnvConfig:
     logdir: pathlib.Path = pathlib.Path().joinpath(
         "./logs/train", str(time.strftime("%m-%d-%H-%M-%S"))
     )
+
+
+def _apply_env_overrides(config):
+    """sweep.py から渡される環境変数で EnvConfig を上書きする。
+    未設定なら何もしないので、単体実行時は従来挙動のまま。"""
+    g = os.environ.get
+    if g("SWEEP_ALPHA"):
+        config.alpha = float(g("SWEEP_ALPHA"))
+    if g("SWEEP_GAMMA"):
+        config.gamma = float(g("SWEEP_GAMMA"))
+    if g("SWEEP_EPS"):
+        config.epsilon = float(g("SWEEP_EPS"))
+    if g("SWEEP_REWARD"):
+        config.reward_variant = g("SWEEP_REWARD")
+    if g("SWEEP_NUM_DIGITIZED"):  # 状態の離散数（刻み幅）
+        config.num_digitized = int(g("SWEEP_NUM_DIGITIZED"))
+        config.state_size = config.num_digitized**4  # ← 必ず再計算
+    if g("SWEEP_NUM_ACTION"):  # トルクの離散数（刻み幅）
+        config.num_action = int(g("SWEEP_NUM_ACTION"))
+    if g("SWEEP_MAX_EPISODE"):  # 動作確認用に総 episode 数を小さくできる
+        config.max_episode = int(g("SWEEP_MAX_EPISODE"))
+    if g("SWEEP_LOGDIR"):
+        config.logdir = pathlib.Path(g("SWEEP_LOGDIR"))
+    return config
 
 
 class Agent:
@@ -59,6 +85,7 @@ class Agent:
 def main():
 
     config = EnvConfig()
+    config = _apply_env_overrides(config)
     env = make_env(config)
     os.makedirs(config.logdir, exist_ok=True)
     print(f"log: {config.logdir}")
