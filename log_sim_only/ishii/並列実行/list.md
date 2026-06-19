@@ -100,3 +100,42 @@
         {"reward": "alpha_only", "eps": 0.10, "alpha": 0.5, "gamma": 0.99, "num_digitized": 21, "num_action": 7, "max_episode": int(10e4), "episode_length": 2000},
         
     ]
+
+# 第8回
+    configs = [
+        # 離散化21段階、報酬式のみ変更
+        {"reward": "alpha_only", "eps": 0.10, "alpha": 0.5, "gamma": 0.99, "num_digitized": 21, "num_action": 7, "max_episode": int(10e4), "episode_length": 2000},
+        {"reward": "alpha_only", "eps": 0.05, "alpha": 0.5, "gamma": 0.99, "num_digitized": 21, "num_action": 7, "max_episode": int(10e4), "episode_length": 2000},
+        {"reward": "alpha_only", "eps": 0.01, "alpha": 0.5, "gamma": 0.99, "num_digitized": 21, "num_action": 7, "max_episode": int(10e4), "episode_length": 2000},
+
+        {"reward": "theta_decline", "eps": 0.10, "alpha": 0.5, "gamma": 0.99, "num_digitized": 21, "num_action": 7, "max_episode": int(10e4), "episode_length": 2000},
+        {"reward": "theta_decline", "eps": 0.05, "alpha": 0.5, "gamma": 0.99, "num_digitized": 21, "num_action": 7, "max_episode": int(10e4), "episode_length": 2000},
+        {"reward": "theta_decline", "eps": 0.01, "alpha": 0.5, "gamma": 0.99, "num_digitized": 21, "num_action": 7, "max_episode": int(10e4), "episode_length": 2000},
+
+        {"reward": "theta_decline_2", "eps": 0.10, "alpha": 0.5, "gamma": 0.99, "num_digitized": 21, "num_action": 7, "max_episode": int(10e4), "episode_length": 2000},
+        {"reward": "theta_decline_2", "eps": 0.05, "alpha": 0.5, "gamma": 0.99, "num_digitized": 21, "num_action": 7, "max_episode": int(10e4), "episode_length": 2000},
+        {"reward": "theta_decline_2", "eps": 0.01, "alpha": 0.5, "gamma": 0.99, "num_digitized": 21, "num_action": 7, "max_episode": int(10e4), "episode_length": 2000},
+        
+        {"reward": "theta_decline_3", "eps": 0.10, "alpha": 0.5, "gamma": 0.99, "num_digitized": 21, "num_action": 7, "max_episode": int(10e4), "episode_length": 2000},
+        {"reward": "theta_decline_3", "eps": 0.05, "alpha": 0.5, "gamma": 0.99, "num_digitized": 21, "num_action": 7, "max_episode": int(10e4), "episode_length": 2000},
+        {"reward": "theta_decline_3", "eps": 0.01, "alpha": 0.5, "gamma": 0.99, "num_digitized": 21, "num_action": 7, "max_episode": int(10e4), "episode_length": 2000},
+    ]
+
+# 第9回
+
+    configs = [
+        # 離散化21段階、報酬式のみ変更
+        {"reward": "alpha_only", "eps": 0.10, "alpha": 0.5, "gamma": 0.99, "num_digitized": 21, "num_action": 7, "max_episode": int(10e4), "episode_length": 2000},
+        {"reward": "alpha_only", "eps": 0.10, "alpha": 0.5, "gamma": 0.99, "num_digitized": 21, "num_action": 7, "max_episode": int(10e4), "episode_length": 2000},
+        {"reward": "alpha_only", "eps": 0.10, "alpha": 0.5, "gamma": 0.99, "num_digitized": 21, "num_action": 7, "max_episode": int(10e4), "episode_length": 2000},
+        {"reward": "alpha_only", "eps": 0.10, "alpha": 0.5, "gamma": 0.99, "num_digitized": 21, "num_action": 7, "max_episode": int(10e4), "episode_length": 2000},
+        {"reward": "alpha_only", "eps": 0.10, "alpha": 0.5, "gamma": 0.99, "num_digitized": 21, "num_action": 7, "max_episode": int(10e4), "episode_length": 2000},
+        {"reward": "alpha_only", "eps": 0.10, "alpha": 0.5, "gamma": 0.99, "num_digitized": 21, "num_action": 7, "max_episode": int(10e4), "episode_length": 2000},
+        
+        {"reward": "alpha_only", "eps": 0.10, "alpha": 0.5, "gamma": 0.99, "num_digitized": 21, "num_action": 7, "max_episode": int(10e4), "episode_length": 2000},
+        {"reward": "alpha_only", "eps": 0.10, "alpha": 0.5, "gamma": 0.99, "num_digitized": 21, "num_action": 7, "max_episode": int(10e4), "episode_length": 2000},
+        {"reward": "alpha_only", "eps": 0.10, "alpha": 0.5, "gamma": 0.99, "num_digitized": 21, "num_action": 7, "max_episode": int(10e4), "episode_length": 2000},
+        {"reward": "alpha_only", "eps": 0.10, "alpha": 0.5, "gamma": 0.99, "num_digitized": 21, "num_action": 7, "max_episode": int(10e4), "episode_length": 2000},
+        {"reward": "alpha_only", "eps": 0.10, "alpha": 0.5, "gamma": 0.99, "num_digitized": 21, "num_action": 7, "max_episode": int(10e4), "episode_length": 2000},
+        {"reward": "alpha_only", "eps": 0.10, "alpha": 0.5, "gamma": 0.99, "num_digitized": 21, "num_action": 7, "max_episode": int(10e4), "episode_length": 2000},
+    ]
