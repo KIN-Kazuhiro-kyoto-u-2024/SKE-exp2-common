@@ -62,6 +62,8 @@ def _apply_env_overrides(config):
         config.num_action = int(g("SWEEP_NUM_ACTION"))
     if g("SWEEP_MAX_EPISODE"):  # 動作確認用に総 episode 数を小さくできる
         config.max_episode = int(g("SWEEP_MAX_EPISODE"))
+    if g("SWEEP_EPISODE_LENGTH"):  # 1 episode のタイムステップ数
+        config.episode_length = int(g("SWEEP_EPISODE_LENGTH"))
     if g("SWEEP_LOGDIR"):
         config.logdir = pathlib.Path(g("SWEEP_LOGDIR"))
     return config

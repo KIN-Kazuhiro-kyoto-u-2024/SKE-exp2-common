@@ -1,6 +1,7 @@
 from collections import OrderedDict
 
 import numpy as np
+import math
 
 from simulator.acrobot import balance, swingup, sys_iden
 
@@ -58,11 +59,55 @@ def _reward_alpha_only(sd, config):
     # さらに err < 0.5 を best として返す（倒立状態の維持に成功しているかの指標）。
     return 1.0 - err, (1 if err < 0.5 else 0)
 
+def _reward_alpha_nonlinear(sd, config):
+    # 振り子角 alpha が中央（直立）に近いほど報酬を大きくする
+    # ルートとったver
+    d = config.num_digitized
+    n_best = (d - 1) / 2
+    err = abs(sd["n_pendulum_rad"] - n_best) / n_best 
+    # 0.0 〜 1.0。これを 1.0 から引いて報酬とする（err が小さいほど報酬が大きい）。
+    # さらに err < 0.5 を best として返す（倒立状態の維持に成功しているかの指標）。
+    return 1.0 - math.sqrt(err), (1 if err < 0.5 else 0)
+
+def _reward_theta_decline(sd, config):
+    # alpha_only をベースに
+    # 手前のうで theta が中央に近いほど報酬を大きくする
+    d = config.num_digitized
+    n_best = (d - 1) / 2
+
+    err_alpha = abs(sd["n_pendulum_rad"] - n_best) / n_best 
+    err_theta = abs(sd["n_arm_rad"] - n_best) / n_best 
+    return 1.0 - err_alpha - 0.1 * err_theta, (1 if err_alpha < 0.5 and err_theta < 0.5 else 0)
+
+
+def _reward_theta_decline_2(sd, config):
+    # alpha_only をベースに
+    # 手前のうで theta が中央に近いほど報酬を大きくする
+    d = config.num_digitized
+    n_best = (d - 1) / 2
+
+    err_alpha = abs(sd["n_pendulum_rad"] - n_best) / n_best 
+    err_theta = abs(sd["n_arm_rad"] - n_best) / n_best 
+    return 1.0 - err_alpha - 0.3 * err_theta, (1 if err_alpha < 0.5 and err_theta < 0.5 else 0)
+
+def _reward_theta_decline_3(sd, config):
+    # alpha_only をベースに
+    # 手前のうで theta が中央に近いほど報酬を大きくする
+    d = config.num_digitized
+    n_best = (d - 1) / 2
+
+    err_alpha = abs(sd["n_pendulum_rad"] - n_best) / n_best 
+    err_theta = abs(sd["n_arm_rad"] - n_best) / n_best 
+    return 1.0 - err_alpha - 0.6 * err_theta, (1 if err_alpha < 0.5 and err_theta < 0.5 else 0)
 
 REWARD_VARIANTS = {
     "default": _reward_default,
     "alpha_only": _reward_alpha_only,
     "complex": _complex_reward,
+    "theta_decline": _reward_theta_decline,
+    "theta_decline_2": _reward_theta_decline_2,
+    "theta_decline_3": _reward_theta_decline_3,
+    "alpha_nonlinear": _reward_alpha_nonlinear,
 }
 
 
