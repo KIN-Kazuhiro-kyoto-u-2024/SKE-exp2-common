@@ -82,6 +82,9 @@ def _apply_env_overrides(config):
         config.max_episode = int(g("SWEEP_MAX_EPISODE"))
     if g("SWEEP_EPISODE_LENGTH"):  # 1 episode のタイムステップ数
         config.episode_length = int(g("SWEEP_EPISODE_LENGTH"))
+        config.video_length = config.episode_length  # 評価動画も同じ長さに連動
+    if g("SWEEP_VIDEO_LENGTH"):  # 連動を上書きして個別指定したいとき
+        config.video_length = int(g("SWEEP_VIDEO_LENGTH"))
     if g("SWEEP_LOGDIR"):
         config.logdir = pathlib.Path(g("SWEEP_LOGDIR"))
     return config
