@@ -32,7 +32,7 @@ class EnvConfig:
     reward_variant: str = "default"  # env.py の REWARD_VARIANTS のキー
     max_episode: int = int(10e4)  # 学習の総 episode 数
     episode_length: int = 200  # 1 episode のタイムステップ数
-    should_log_model: int = 1000  # 何 episode おきに QTable の値を保存するか
+    should_log_model: int = 10000  # 何 episode おきに QTable の値を保存するか
     should_log_scalar: int = 200  # 何 episode おきに学習のログを出力するか
     should_log_video: int = 1000  # 何 episode おきに QTable の評価をするか
     restore: bool = False  # 学習を再スタートする場合，これを True とする
@@ -225,13 +225,16 @@ def main():
                 best_num += state_dict["best"]
                 if done:
                     break
-            print(
-                f"\nevaluate episode reward: {eval_reward}, episode step: {len(rew_seq)}\n"
-            )
-            logger.log_video({"eval/video": np.array(img_seq)}, save=False)
+            step = len(rew_seq)
+            print(f"\nevaluate episode reward: {eval_reward}, episode step: {step}\n")
+            # logger.log_video({"eval/video": np.array(img_seq)}, save=False)
             logger.add_scalars(
                 OrderedDict(
-                    [("eval/ep_reward", eval_reward), ("eval/ep_best_num", best_num)]
+                    [
+                        ("eval/ep_reward", eval_reward),
+                        ("eval/ep_best_num", best_num),
+                        ("eval/ep_length_truth", step),
+                    ]
                 )
             )
             act_seq_img = logger.plot2image("action", {"torque": np.array(act_seq)})
