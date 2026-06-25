@@ -36,24 +36,18 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 # ----------------------------------------------------------------------
 # ここを編集して sweep したい設定リストを書く
 # ----------------------------------------------------------------------
+# fmt: off
 configs = [
     # 離散化21段階、報酬式のみ変更
-    {"reward": "alpha_only", "eps": 0.10, "alpha": 0.5, "gamma": 0.99, "num_digitized": 21, "num_action": 7, "max_episode": int(10e4), "episode_length": 2000},
-    {"reward": "alpha_only", "eps": 0.10, "alpha": 0.5, "gamma": 0.99, "num_digitized": 21, "num_action": 7, "max_episode": int(10e4), "episode_length": 2000},
-    {"reward": "alpha_only", "eps": 0.10, "alpha": 0.5, "gamma": 0.99, "num_digitized": 21, "num_action": 7, "max_episode": int(10e4), "episode_length": 2000},
-    {"reward": "alpha_only", "eps": 0.10, "alpha": 0.5, "gamma": 0.99, "num_digitized": 21, "num_action": 7, "max_episode": int(10e4), "episode_length": 2000},
-    {"reward": "alpha_only", "eps": 0.10, "alpha": 0.5, "gamma": 0.99, "num_digitized": 21, "num_action": 7, "max_episode": int(10e4), "episode_length": 2000},
-    {"reward": "alpha_only", "eps": 0.10, "alpha": 0.5, "gamma": 0.99, "num_digitized": 21, "num_action": 7, "max_episode": int(10e4), "episode_length": 2000},
-    
-    {"reward": "alpha_only", "eps": 0.10, "alpha": 0.5, "gamma": 0.99, "num_digitized": 21, "num_action": 7, "max_episode": int(10e4), "episode_length": 2000},
-    {"reward": "alpha_only", "eps": 0.10, "alpha": 0.5, "gamma": 0.99, "num_digitized": 21, "num_action": 7, "max_episode": int(10e4), "episode_length": 2000},
-    {"reward": "alpha_only", "eps": 0.10, "alpha": 0.5, "gamma": 0.99, "num_digitized": 21, "num_action": 7, "max_episode": int(10e4), "episode_length": 2000},
-    {"reward": "alpha_only", "eps": 0.10, "alpha": 0.5, "gamma": 0.99, "num_digitized": 21, "num_action": 7, "max_episode": int(10e4), "episode_length": 2000},
-    {"reward": "alpha_only", "eps": 0.10, "alpha": 0.5, "gamma": 0.99, "num_digitized": 21, "num_action": 7, "max_episode": int(10e4), "episode_length": 2000},
-    {"reward": "alpha_only", "eps": 0.10, "alpha": 0.5, "gamma": 0.99, "num_digitized": 21, "num_action": 7, "max_episode": int(10e4), "episode_length": 2000},
+    {"reward": "default", "eps": 0.20, "alpha": 0.5, "gamma": 0.99, "num_digitized": 8, "num_action": 4, "max_episode": int(10e4), "episode_length": 2000},
+    {"reward": "complex", "eps": 0.20, "alpha": 0.5, "gamma": 0.99, "num_digitized": 8, "num_action": 4, "max_episode": int(10e4), "episode_length": 2000},
+    {"reward": "theta_decline", "eps": 0.20, "alpha": 0.5, "gamma": 0.99, "num_digitized": 8, "num_action": 4, "max_episode": int(10e4), "episode_length": 2000},
+    {"reward": "theta_decline_2", "eps": 0.20, "alpha": 0.5, "gamma": 0.99, "num_digitized": 8, "num_action": 4, "max_episode": int(10e4), "episode_length": 2000},
+    {"reward": "theta_decline_3", "eps": 0.20, "alpha": 0.5, "gamma": 0.99, "num_digitized": 8, "num_action": 4, "max_episode": int(10e4), "episode_length": 2000},
+    {"reward": "alpha_nonlinear", "eps": 0.20, "alpha": 0.5, "gamma": 0.99, "num_digitized": 8, "num_action": 4, "max_episode": int(10e4), "episode_length": 2000},
 ]
 
-MAX_PARALLEL = 12  # 同時に走らせる最大本数
+MAX_PARALLEL = 6  # 同時に走らせる最大本数
 STAGGER_SEC = 5  # 連続する起動の間隔（秒）。出力衝突防止＆起動競合の緩和
 
 # ----------------------------------------------------------------------
