@@ -80,3 +80,8 @@
         if alpha_err < (0.5 / n_best):
             bonus = 1
         return rew, 1 if bonus > 0 else 0
+
+
+train_parallel logs\train\06-25-14-32-56
+
+一番いいやつ 今のところ
