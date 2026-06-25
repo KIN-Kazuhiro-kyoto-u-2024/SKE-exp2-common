@@ -64,10 +64,18 @@ def _reward_alpha_nonlinear(sd, config):
     # ルートとったver
     d = config.num_digitized
     n_best = (d - 1) / 2
-    err = abs(sd["n_pendulum_rad"] - n_best) / n_best 
+    err = abs(sd["n_pendulum_rad"] - n_best) / n_best
     # 0.0 〜 1.0。これを 1.0 から引いて報酬とする（err が小さいほど報酬が大きい）。
     # さらに err < 0.5 を best として返す（倒立状態の維持に成功しているかの指標）。
     return 1.0 - math.sqrt(err), (1 if err < 0.5 else 0)
+
+def _reward_alpha_cos(sd, config):
+    # 離散インデックス差の abs ではなく、実角 alpha（連続値）の cos を報酬にする。
+    # 直立（alpha=0rad）で cos=1.0 が最大、傾くほど滑らかに減少する。
+    alpha = sd["pendulum_rad"]
+    rew = math.cos(alpha)
+    # best: 直立範囲（±0.20π）の半分以内に入っていれば成功とみなす
+    return rew, (1 if abs(alpha) < 0.10 * np.pi else 0)
 
 def _reward_theta_decline(sd, config):
     # alpha_only をベースに
@@ -108,6 +116,30 @@ REWARD_VARIANTS = {
     "theta_decline_2": _reward_theta_decline_2,
     "theta_decline_3": _reward_theta_decline_3,
     "alpha_nonlinear": _reward_alpha_nonlinear,
+    "alpha_cos": _reward_alpha_cos,
+}
+
+
+# =====================================================================
+# 離散化バリアント: (low, high, d) -> 内側のビン境界（長さ d-1 の配列）
+#   sweep.py から config.digitize_variant で選ぶ。連続値の刻み方を変えたいときは
+#   ここに関数を1つ書いて DIGITIZE_VARIANTS に登録するだけ。
+#   どれも中央 0 が重要点で対称な区間を想定しており、角度・速度の両方に使える。
+# =====================================================================
+def _edges_uniform(low, high, d):
+    # 一様分割（従来挙動）。
+    return np.linspace(low, high, d + 1)[1:-1]
+
+def _edges_dense_center(low, high, d, power=2.0):
+    # 中央（0付近=直立）を密にする非一様分割。power>1 で 0付近にビンが集まる。
+    t = np.linspace(-1.0, 1.0, d + 1)
+    warped = np.sign(t) * np.abs(t) ** power
+    mid, half = (low + high) / 2.0, (high - low) / 2.0
+    return (mid + warped * half)[1:-1]
+
+DIGITIZE_VARIANTS = {
+    "uniform": _edges_uniform,
+    "dense_center": _edges_dense_center,
 }
 
 
@@ -120,7 +152,14 @@ class Balance:
         # 実機ランチャー（launch.py / launch_for_rl_policy.py）が参照する。
         # ゼロベクトルなので離散化境界は変わらない。
         self._arrange = np.zeros(d - 1)
-        self._env = balance()
+        # 初期条件のランダム化範囲を config から渡す（学習できていない状態範囲のカバー用）。
+        # 既定値は従来挙動（elbow ±0.1π, 他は 0）。sweep.py から SWEEP_INIT_* で振れる。
+        self._env = balance(
+            init_elbow_range=config.init_alpha_range,
+            init_shoulder_range=config.init_theta_range,
+            init_elbow_vel_range=config.init_alpha_vel_range,
+            init_shoulder_vel_range=config.init_theta_vel_range,
+        )
         self._pendulum_limit = (
             -0.20 * np.pi,
             0.20 * np.pi,
@@ -164,6 +203,23 @@ class Balance:
         digitized_state, _, state_dict = self._digitized_state(obs)
         return digitized_state
 
+    def reset_to(self, alpha=0.0, theta=0.0, alpha_dot=0.0, theta_dot=0.0):
+        """共通テスト用: 初期条件を厳密に指定してリセットする（ランダム化しない）。
+        alpha=振り子(elbow)角, theta=腕(shoulder)角, *_dot は各角速度。
+        全モデルに同一の初期条件セットを与えて公平に評価するために使う。"""
+        self._env.reset()
+        p = self._env.physics
+        p.named.data.qpos["elbow"] = alpha
+        p.named.data.qpos["shoulder"] = theta
+        p.named.data.qvel["elbow"] = alpha_dot
+        p.named.data.qvel["shoulder"] = theta_dot
+        p.forward()  # 上書きした状態を派生量（向き等）に反映
+        obs = OrderedDict()
+        obs["orientations"] = p.orientations()
+        obs["velocity"] = p.velocity()
+        digitized_state, _, _ = self._digitized_state(obs)
+        return digitized_state
+
     def _get_reward(self, state_dict, done, action):
 
         # 倒立状態の維持に失敗したときの報酬
@@ -186,18 +242,15 @@ class Balance:
         pendulum_rad = np.arctan2(pendulum_vec[1], pendulum_vec[0])
 
         # arm_rad: theta, arm_vel: thetadot, pendulum_rad: alpha, pendulum_vel: alphadot
-        # 以下を書き換えて，これら（連続値）の離散化方法を色々変更してみる
-        n_arm_rad = np.digitize(
-            arm_rad, np.linspace(self._arm_limit[0], self._arm_limit[1], d + 1)[1:-1]
-        )
-        n_arm_vel = np.digitize(arm_vel.clip(-8, 8), np.linspace(-8, 8, d + 1)[1:-1])
+        # 離散化方法は env.py 上部の DIGITIZE_VARIANTS から選ぶ
+        # （config.digitize_variant で指定。sweep.py から SWEEP_DIGITIZE で切替）
+        edges = DIGITIZE_VARIANTS[self._config.digitize_variant]
+        n_arm_rad = np.digitize(arm_rad, edges(self._arm_limit[0], self._arm_limit[1], d))
+        n_arm_vel = np.digitize(arm_vel.clip(-8, 8), edges(-8, 8, d))
         n_pendulum_rad = np.digitize(
-            pendulum_rad,
-            np.linspace(self._pendulum_limit[0], self._pendulum_limit[1], d + 1)[1:-1],
+            pendulum_rad, edges(self._pendulum_limit[0], self._pendulum_limit[1], d)
         )
-        n_pendulum_vel = np.digitize(
-            pendulum_vel.clip(-8, 8), np.linspace(-8, 8, d + 1)[1:-1]
-        )
+        n_pendulum_vel = np.digitize(pendulum_vel.clip(-8, 8), edges(-8, 8, d))
 
         state_dict["arm_rad"] = arm_rad
         state_dict["pendulum_rad"] = pendulum_rad
@@ -212,13 +265,20 @@ class Balance:
         )
 
         # theta か alpha が既定の範囲を超えたら（倒立状態の維持に失敗したら）
-        # done を True としてエピソード終了
+        # done を True としてエピソード終了。
+        # done_reason に失敗原因を残す（train.py / sweep.py で原因別に集計する）:
+        #   "theta" = θ(arm) 範囲外, "alpha" = α(pendulum) 範囲外, "both" = 両方同時, "" = 失敗なし
         arm_cond = n_arm_rad == 0 or n_arm_rad == d - 1
         pendulum_cond = n_pendulum_rad == 0 or n_pendulum_rad == d - 1
-        if arm_cond or pendulum_cond:
-            done = True
+        if arm_cond and pendulum_cond:
+            state_dict["done_reason"] = "both"
+        elif arm_cond:
+            state_dict["done_reason"] = "theta"
+        elif pendulum_cond:
+            state_dict["done_reason"] = "alpha"
         else:
-            done = False
+            state_dict["done_reason"] = ""
+        done = arm_cond or pendulum_cond
         return state_dict["digitized_state"], done, state_dict
 
 

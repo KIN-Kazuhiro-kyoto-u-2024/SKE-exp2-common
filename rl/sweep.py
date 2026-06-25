@@ -13,12 +13,17 @@
     ``ave_ep_rew`` の高い順にコンソール表示する（良い設定を見つけやすくする）。
 
 config の各キー（すべて任意。指定したものだけ上書きされ、未指定は train.py の既定値）:
-  reward         : env.py の REWARD_VARIANTS のキー（例 "default", "center"）
+  reward         : env.py の REWARD_VARIANTS のキー（例 "default", "alpha_cos"）
+  digitize       : env.py の DIGITIZE_VARIANTS のキー（"uniform" / "dense_center"）
   eps            : epsilon-greedy の epsilon
   alpha          : 学習率
   gamma          : 割引率
   num_digitized  : 状態の離散数（刻み幅）。指定すると state_size も再計算される
   num_action     : トルク（アクション）の離散数（刻み幅）
+  init_alpha     : 振り子(elbow)の初期角度ランダム化範囲（±rad）
+  init_theta     : 腕(shoulder)の初期角度ランダム化範囲（±rad）
+  init_alpha_vel : 振り子の初速度ランダム化範囲（±rad/s）
+  init_theta_vel : 腕の初速度ランダム化範囲（±rad/s）
   max_episode    : 総 episode 数。動作確認で短く回したいときに指定
   episode_length : 1 episode のタイムステップ数（既定 200）
 """
@@ -35,21 +40,32 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 # ----------------------------------------------------------------------
 # ここを編集して sweep したい設定リストを書く
 # ----------------------------------------------------------------------
+_BASE = {"eps": 0.10, "alpha": 0.5, "gamma": 0.99, "num_digitized": 21,
+         "num_action": 7, "max_episode": int(10e4), "episode_length": 2000}
+
 configs = [
-    # 離散化21段階、報酬式のみ変更
-    {"reward": "alpha_only", "eps": 0.10, "alpha": 0.5, "gamma": 0.99, "num_digitized": 21, "num_action": 7, "max_episode": int(10e4), "episode_length": 2000},
-    {"reward": "alpha_only", "eps": 0.10, "alpha": 0.5, "gamma": 0.99, "num_digitized": 21, "num_action": 7, "max_episode": int(10e4), "episode_length": 2000},
-    {"reward": "alpha_only", "eps": 0.10, "alpha": 0.5, "gamma": 0.99, "num_digitized": 21, "num_action": 7, "max_episode": int(10e4), "episode_length": 2000},
-    {"reward": "alpha_only", "eps": 0.10, "alpha": 0.5, "gamma": 0.99, "num_digitized": 21, "num_action": 7, "max_episode": int(10e4), "episode_length": 2000},
-    {"reward": "alpha_only", "eps": 0.10, "alpha": 0.5, "gamma": 0.99, "num_digitized": 21, "num_action": 7, "max_episode": int(10e4), "episode_length": 2000},
-    {"reward": "alpha_only", "eps": 0.10, "alpha": 0.5, "gamma": 0.99, "num_digitized": 21, "num_action": 7, "max_episode": int(10e4), "episode_length": 2000},
-    
-    {"reward": "alpha_only", "eps": 0.10, "alpha": 0.5, "gamma": 0.99, "num_digitized": 21, "num_action": 7, "max_episode": int(10e4), "episode_length": 2000},
-    {"reward": "alpha_only", "eps": 0.10, "alpha": 0.5, "gamma": 0.99, "num_digitized": 21, "num_action": 7, "max_episode": int(10e4), "episode_length": 2000},
-    {"reward": "alpha_only", "eps": 0.10, "alpha": 0.5, "gamma": 0.99, "num_digitized": 21, "num_action": 7, "max_episode": int(10e4), "episode_length": 2000},
-    {"reward": "alpha_only", "eps": 0.10, "alpha": 0.5, "gamma": 0.99, "num_digitized": 21, "num_action": 7, "max_episode": int(10e4), "episode_length": 2000},
-    {"reward": "alpha_only", "eps": 0.10, "alpha": 0.5, "gamma": 0.99, "num_digitized": 21, "num_action": 7, "max_episode": int(10e4), "episode_length": 2000},
-    {"reward": "alpha_only", "eps": 0.10, "alpha": 0.5, "gamma": 0.99, "num_digitized": 21, "num_action": 7, "max_episode": int(10e4), "episode_length": 2000},
+    # --- A. 報酬式 × 離散化方式の効果（初期条件は既定＝従来）-----------------
+    # cos報酬 vs 旧 alpha_only、uniform vs dense_center の 2x2 比較（基準）。
+    {**_BASE, "reward": "alpha_cos",  "digitize": "uniform"},       # 00
+    {**_BASE, "reward": "alpha_cos",  "digitize": "dense_center"},  # 01
+    {**_BASE, "reward": "alpha_only", "digitize": "uniform"},       # 02
+    {**_BASE, "reward": "alpha_only", "digitize": "dense_center"},  # 03
+
+    # --- B. 初速度（振り子 alpha）のランダム化範囲スイープ -------------------
+    # cos + dense_center 固定で、振り子の初期角速度を 0.5/1.0/2.0 と広げて
+    # 学習できていない高速域をどこまでカバーできるか比較。
+    {**_BASE, "reward": "alpha_cos", "digitize": "dense_center", "init_alpha_vel": 0.5},  # 04
+    {**_BASE, "reward": "alpha_cos", "digitize": "dense_center", "init_alpha_vel": 1.0},  # 05
+    {**_BASE, "reward": "alpha_cos", "digitize": "dense_center", "init_alpha_vel": 2.0},  # 06
+
+    # --- C. 腕(theta)側 / 両方の初速度ランダム化 ----------------------------
+    {**_BASE, "reward": "alpha_cos", "digitize": "dense_center", "init_theta_vel": 1.0},                      # 07
+    {**_BASE, "reward": "alpha_cos", "digitize": "dense_center", "init_alpha_vel": 1.0, "init_theta_vel": 1.0},  # 08
+
+    # --- D. 初期角度も広げる（角度＋初速度の合わせ技で広範囲をカバー）--------
+    {**_BASE, "reward": "alpha_cos", "digitize": "dense_center", "init_alpha": 0.15},                          # 09
+    {**_BASE, "reward": "alpha_cos", "digitize": "dense_center", "init_alpha": 0.15, "init_alpha_vel": 1.0},   # 10
+    {**_BASE, "reward": "alpha_cos", "digitize": "dense_center", "init_alpha": 0.20, "init_alpha_vel": 2.0, "init_theta_vel": 1.0},  # 11
 ]
 
 MAX_PARALLEL = 12  # 同時に走らせる最大本数
@@ -66,11 +82,16 @@ _running_procs = set()
 # config キー -> (train.py に渡す環境変数名, run 名に付ける接頭辞)
 _KEYS = [
     ("reward", "SWEEP_REWARD", ""),
+    ("digitize", "SWEEP_DIGITIZE", "dz"),
     ("eps", "SWEEP_EPS", "eps"),
     ("alpha", "SWEEP_ALPHA", "a"),
     ("gamma", "SWEEP_GAMMA", "g"),
     ("num_digitized", "SWEEP_NUM_DIGITIZED", "d"),
     ("num_action", "SWEEP_NUM_ACTION", "na"),
+    ("init_alpha", "SWEEP_INIT_ALPHA", "ia"),
+    ("init_theta", "SWEEP_INIT_THETA", "it"),
+    ("init_alpha_vel", "SWEEP_INIT_ALPHA_VEL", "iav"),
+    ("init_theta_vel", "SWEEP_INIT_THETA_VEL", "itv"),
     ("max_episode", "SWEEP_MAX_EPISODE", "ep"),
     ("episode_length", "SWEEP_EPISODE_LENGTH", "len"),
 ]
@@ -124,34 +145,65 @@ def run_one(idx, cfg, batch_dir):
     return idx, name, ret
 
 
+# 失敗原因の列（data.csv のヘッダ名）。run 全体で合計して内訳を出す。
+_FAIL_COLS = ["fail_theta", "fail_alpha", "fail_both", "fail_timeout"]
+
+
 def _write_summary(batch_dir, results):
-    # data.csv の header: episode,ave_ep_len,ave_ep_rew,qtable_err
+    # data.csv の header: episode,ave_ep_len,ave_ep_rew,qtable_err[,fail_theta,fail_alpha,fail_both,fail_timeout]
+    # ヘッダ名→列 index で解析するので、旧フォーマット（fail_* なし）でも落ちない。
     rows = []
     for idx, name, ret in results:
         data_csv = batch_dir / name / "data.csv"
         ep = ave_len = ave_rew = None
+        fails = {c: 0 for c in _FAIL_COLS}
         if data_csv.exists():
             lines = data_csv.read_text().strip().splitlines()
             if len(lines) >= 2:
-                cols = lines[-1].split(",")
-                if len(cols) >= 3:
-                    ep, ave_len, ave_rew = cols[0], float(cols[1]), float(cols[2])
-        rows.append((idx, name, ret, ep, ave_len, ave_rew))
+                header = lines[0].split(",")
+                col = {n: i for i, n in enumerate(header)}
+                last = lines[-1].split(",")
+                if len(last) >= 3:
+                    ep, ave_len, ave_rew = last[0], float(last[1]), float(last[2])
+                # fail_* は全データ行を合計（run 全体の失敗原因内訳）
+                for line in lines[1:]:
+                    parts = line.split(",")
+                    for c in _FAIL_COLS:
+                        i = col.get(c)
+                        if i is not None and i < len(parts):
+                            try:
+                                fails[c] += int(float(parts[i]))
+                            except ValueError:
+                                pass
+        rows.append((idx, name, ret, ep, ave_len, ave_rew, fails))
 
     # ave_ep_rew 降順（未取得は末尾）
     rows.sort(key=lambda r: (r[5] is not None, r[5] if r[5] is not None else 0), reverse=True)
 
     out = batch_dir / "summary.csv"
     with open(out, "w") as f:
-        print("name,ret,episode,ave_ep_len,ave_ep_rew", file=f)
-        for _idx, name, ret, ep, ave_len, ave_rew in rows:
-            print(name, ret, ep, ave_len, ave_rew, sep=",", file=f)
+        print("name,ret,episode,ave_ep_len,ave_ep_rew," + ",".join(_FAIL_COLS), file=f)
+        for _idx, name, ret, ep, ave_len, ave_rew, fails in rows:
+            print(
+                name, ret, ep, ave_len, ave_rew,
+                *[fails[c] for c in _FAIL_COLS],
+                sep=",", file=f,
+            )
 
     print("\n==== summary (ave_ep_rew desc) ====", flush=True)
-    print(f"{'ave_ep_rew':>12}  {'ave_ep_len':>10}  name", flush=True)
-    for _idx, name, ret, ep, ave_len, ave_rew in rows:
+    print(
+        f"{'ave_ep_rew':>12}  {'ave_ep_len':>10}  "
+        f"{'f_theta':>7} {'f_alpha':>7} {'f_both':>7} {'f_tout':>7}  name",
+        flush=True,
+    )
+    for _idx, name, ret, ep, ave_len, ave_rew, fails in rows:
         flag = "" if ret == 0 else f"  [FAILED ret={ret}]"
-        print(f"{str(ave_rew):>12}  {str(ave_len):>10}  {name}{flag}", flush=True)
+        print(
+            f"{str(ave_rew):>12}  {str(ave_len):>10}  "
+            f"{fails['fail_theta']:>7} {fails['fail_alpha']:>7} "
+            f"{fails['fail_both']:>7} {fails['fail_timeout']:>7}  {name}{flag}",
+            flush=True,
+        )
     print(f"\nsummary : {out}")
     print(f"compare : tensorboard --logdir {batch_dir}")
 
