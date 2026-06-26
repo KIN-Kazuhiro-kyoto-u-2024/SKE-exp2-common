@@ -39,12 +39,12 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 # fmt: off
 configs = [
     # 離散化21段階、報酬式のみ変更
-    {"reward": "alpha_only", "eps": 0.20, "alpha": 0.5, "gamma": 0.99, "num_digitized": 8, "num_action": 4, "max_episode": int(10e4), "episode_length": 2000},
-    {"reward": "alpha_only", "eps": 0.20, "alpha": 0.5, "gamma": 0.99, "num_digitized": 12, "num_action": 4, "max_episode": int(10e4), "episode_length": 2000},
-    {"reward": "alpha_only", "eps": 0.20, "alpha": 0.5, "gamma": 0.99, "num_digitized": 18, "num_action": 4, "max_episode": int(10e4), "episode_length": 2000},
-    {"reward": "alpha_only", "eps": 0.20, "alpha": 0.5, "gamma": 0.99, "num_digitized": 21, "num_action": 4, "max_episode": int(10e4), "episode_length": 2000},
-    {"reward": "alpha_only", "eps": 0.20, "alpha": 0.5, "gamma": 0.99, "num_digitized": 24, "num_action": 4, "max_episode": int(10e4), "episode_length": 2000},
-    {"reward": "alpha_only", "eps": 0.20, "alpha": 0.5, "gamma": 0.99, "num_digitized": 48, "num_action": 4, "max_episode": int(10e4), "episode_length": 2000},
+    {"reward": "alpha_only", "eps": 0.20, "alpha": 0.5, "gamma": 0.99, "num_digitized": 21, "num_action": 4, "max_episode": int(10e4), "episode_length": 4000},
+    {"reward": "alpha_only", "eps": 0.20, "alpha": 0.5, "gamma": 0.99, "num_digitized": 21, "num_action": 5, "max_episode": int(10e4), "episode_length": 4000},
+    {"reward": "alpha_only", "eps": 0.20, "alpha": 0.5, "gamma": 0.99, "num_digitized": 21, "num_action": 6, "max_episode": int(10e4), "episode_length": 4000},
+    {"reward": "alpha_only", "eps": 0.20, "alpha": 0.5, "gamma": 0.99, "num_digitized": 21, "num_action": 7, "max_episode": int(10e4), "episode_length": 4000},
+    {"reward": "alpha_only", "eps": 0.20, "alpha": 0.5, "gamma": 0.99, "num_digitized": 21, "num_action": 12, "max_episode": int(10e4), "episode_length": 4000},
+    {"reward": "alpha_only", "eps": 0.20, "alpha": 0.5, "gamma": 0.99, "num_digitized": 21, "num_action": 24, "max_episode": int(10e4), "episode_length": 4000},
 ]
 
 MAX_PARALLEL = 6  # 同時に走らせる最大本数
