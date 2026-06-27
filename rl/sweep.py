@@ -39,12 +39,14 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 # fmt: off
 configs = [
     # 離散化21段階、報酬式のみ変更
-    {"reward": "alpha_cos", "eps": 0.20, "alpha": 0.5, "gamma": 0.99, "num_digitized": 8, "num_action": 4, "max_episode": int(10e4), "episode_length": 2000},
-
-    {"reward": "alpha_only", "eps": 0.20, "alpha": 0.5, "gamma": 0.99, "num_digitized": 21, "num_action": 5, "max_episode": int(10e4), "episode_length": 6000},
-    {"reward": "alpha_only", "eps": 0.20, "alpha": 0.5, "gamma": 0.75, "num_digitized": 21, "num_action": 5, "max_episode": int(10e4), "episode_length": 6000},
-    {"reward": "alpha_only", "eps": 0.20, "alpha": 0.5, "gamma": 0.50, "num_digitized": 21, "num_action": 5, "max_episode": int(10e4), "episode_length": 6000},
-    {"reward": "alpha_only", "eps": 0.20, "alpha": 0.5, "gamma": 0.25, "num_digitized": 21, "num_action": 5, "max_episode": int(10e4), "episode_length": 6000},
+    {"reward": "default", "eps": 0.20, "alpha": 0.5, "gamma": 0.99, "num_digitized": 21, "num_action": 5, "max_episode": int(10e4), "episode_length": 8000},
+    {"reward": "alpha_only", "eps": 0.20, "alpha": 0.5, "gamma": 0.99, "num_digitized": 21, "num_action": 5, "max_episode": int(10e4), "episode_length": 8000},
+    {"reward": "complex", "eps": 0.20, "alpha": 0.5, "gamma": 0.99, "num_digitized": 21, "num_action": 5, "max_episode": int(10e4), "episode_length": 8000},
+    {"reward": "theta_decline", "eps": 0.20, "alpha": 0.5, "gamma": 0.99, "num_digitized": 21, "num_action": 5, "max_episode": int(10e4), "episode_length": 8000},
+    {"reward": "theta_decline_2", "eps": 0.20, "alpha": 0.5, "gamma": 0.99, "num_digitized": 21, "num_action": 5, "max_episode": int(10e4), "episode_length": 8000},
+    {"reward": "theta_decline_3", "eps": 0.20, "alpha": 0.5, "gamma": 0.99, "num_digitized": 21, "num_action": 5, "max_episode": int(10e4), "episode_length": 8000},
+    {"reward": "alpha_nonlinear", "eps": 0.20, "alpha": 0.5, "gamma": 0.99, "num_digitized": 21, "num_action": 5, "max_episode": int(10e4), "episode_length": 8000},
+    {"reward": "alpha_cos", "eps": 0.20, "alpha": 0.5, "gamma": 0.99, "num_digitized": 21, "num_action": 5, "max_episode": int(10e4), "episode_length": 8000},
 ]
 
 MAX_PARALLEL = 8  # 同時に走らせる最大本数
