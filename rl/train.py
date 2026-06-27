@@ -33,7 +33,7 @@ class EnvConfig:
     max_episode: int = int(10e4)  # 学習の総 episode 数
     episode_length: int = 200  # 1 episode のタイムステップ数
     should_log_model: int = 100000  # 何 episode おきに QTable の値を保存するか
-    should_log_scalar: int = 200  # 何 episode おきに学習のログを出力するか
+    should_log_scalar: int = 2000  # 何 episode おきに学習のログを出力するか
     should_log_video: int = 1000  # 何 episode おきに QTable の評価をするか
     restore: bool = False  # 学習を再スタートする場合，これを True とする
     restore_path: str = ""  # QTable の初期値用データのパスを入力（再スタート時）
@@ -204,16 +204,16 @@ def main():
             state = env.reset()
             eval_reward = 0
             best_num = 0
-            img_seq = []
+            # img_seq = []
             act_seq = []
-            img_seq = []
+            # img_seq = []
             rew_seq = []
             alpha_seq = []
             theta_seq = []
             for _ in range(config.video_length):
-                img_seq.append(
-                    env._env.physics.render(height=480, width=640, camera_id=0)
-                )
+                # img_seq.append(
+                #     env._env.physics.render(height=480, width=640, camera_id=0)
+                # )
                 action = agent.get_action(state, explore=False)
                 next_state, reward, done, state_dict = env.step(action)
                 state = next_state

@@ -100,6 +100,14 @@ def _reward_theta_decline_3(sd, config):
     err_theta = abs(sd["n_arm_rad"] - n_best) / n_best 
     return 1.0 - err_alpha - 0.6 * err_theta, (1 if err_alpha < 0.5 and err_theta < 0.5 else 0)
 
+def _reward_alpha_cos(sd, config):
+    # 離散インデックス差の abs ではなく、実角 alpha（連続値）の cos を報酬にする。
+    # 直立（alpha=0rad）で cos=1.0 が最大、傾くほど滑らかに減少する。
+    alpha = sd["pendulum_rad"]
+    rew = math.cos(alpha)
+    # best: 直立範囲（±0.20π）の半分以内に入っていれば成功とみなす
+    return rew, (1 if abs(alpha) < 0.10 * np.pi else 0)
+
 REWARD_VARIANTS = {
     "default": _reward_default,
     "alpha_only": _reward_alpha_only,
@@ -108,6 +116,7 @@ REWARD_VARIANTS = {
     "theta_decline_2": _reward_theta_decline_2,
     "theta_decline_3": _reward_theta_decline_3,
     "alpha_nonlinear": _reward_alpha_nonlinear,
+    "alpha_cos": _reward_alpha_cos,
 }
 
 
