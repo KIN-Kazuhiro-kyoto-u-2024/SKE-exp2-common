@@ -114,8 +114,8 @@ def _reward_alpha_cos_n(sd, config):
     # 直立で cos=1.0 が最大、傾くほど滑らかに減少する。
     d = config.num_digitized
     n_best = (d - 1) / 2
-    err_alpha = abs(sd["n_pendulum_rad"] - n_best) / n_best
-    rew = math.cos(err_alpha)
+    err_alpha = abs(sd["n_pendulum_rad"] - n_best) / n_best  # [0, 1]
+    rew = math.cos(err_alpha * np.pi / 2)  # [0, pi/2]のcos
     # best: 直立範囲の半分以内に入っていれば成功とみなす
     return rew, (1 if err_alpha < 0.5 else 0)
 

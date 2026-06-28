@@ -40,6 +40,8 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 configs = [
     # 離散化21段階、報酬式のみ変更
     {"reward": "alpha_cos_n", "eps": 0.20, "alpha": 0.5, "gamma": 0.99, "num_digitized": 8, "num_action": 4, "max_episode": int(10e4), "episode_length": 2000},
+    {"reward": "alpha_cos_n", "eps": 0.20, "alpha": 0.5, "gamma": 0.99, "num_digitized": 8, "num_action": 4, "max_episode": int(10e4), "episode_length": 2000},
+    {"reward": "alpha_cos_n", "eps": 0.20, "alpha": 0.5, "gamma": 0.99, "num_digitized": 21, "num_action": 5, "max_episode": int(10e4), "episode_length": 8000},
     {"reward": "alpha_cos_n", "eps": 0.20, "alpha": 0.5, "gamma": 0.99, "num_digitized": 21, "num_action": 5, "max_episode": int(10e4), "episode_length": 8000},
 ]
 
