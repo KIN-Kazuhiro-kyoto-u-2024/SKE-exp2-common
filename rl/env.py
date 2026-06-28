@@ -108,6 +108,18 @@ def _reward_alpha_cos(sd, config):
     # best: 直立範囲（±0.20π）の半分以内に入っていれば成功とみなす
     return rew, (1 if abs(alpha) < 0.10 * np.pi else 0)
 
+
+def _reward_alpha_cos_n(sd, config):
+    # 離散インデックス差の abs の cos を報酬にする。
+    # 直立で cos=1.0 が最大、傾くほど滑らかに減少する。
+    d = config.num_digitized
+    n_best = (d - 1) / 2
+    err_alpha = abs(sd["n_pendulum_rad"] - n_best) / n_best
+    rew = math.cos(err_alpha)
+    # best: 直立範囲の半分以内に入っていれば成功とみなす
+    return rew, (1 if err_alpha < 0.5 else 0)
+
+
 REWARD_VARIANTS = {
     "default": _reward_default,
     "alpha_only": _reward_alpha_only,
@@ -117,6 +129,7 @@ REWARD_VARIANTS = {
     "theta_decline_3": _reward_theta_decline_3,
     "alpha_nonlinear": _reward_alpha_nonlinear,
     "alpha_cos": _reward_alpha_cos,
+    "alpha_cos_n": _reward_alpha_cos_n,
 }
 
 
