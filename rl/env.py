@@ -1,6 +1,7 @@
 from collections import OrderedDict
 
 import numpy as np
+import math
 
 from simulator.acrobot import balance, swingup, sys_iden
 
@@ -16,12 +17,131 @@ def make_env(config):
     raise NotImplementedError
 
 
+# =====================================================================
+# 報酬バリアント: (state_dict, config) -> (rew, best)
+#   sweep.py から config.reward_variant で選ぶ。新しい報酬式を試したいときは
+#   ここに関数を1つ書いて REWARD_VARIANTS に登録するだけ。
+#   なお done（倒立失敗）時の -10 は _get_reward 側で短絡するのでここでは扱わない。
+# =====================================================================
+def _reward_default(sd, config):
+    # 現状の挙動: 倒立を維持している限り毎ステップ +0.1
+    return 0.1, 0
+
+def _complex_reward(sd, config):
+    
+    # 報酬（rew）の設定
+    # rew の与え方を色々変更してみる
+    d = config.num_digitized
+    n_pendulum_rad, n_pendulum_vel = sd["n_pendulum_rad"], sd["n_pendulum_vel"]
+    n_best = (d - 1) / 2
+    n_arm_rad, n_arm_vel = sd["n_arm_rad"], sd["n_arm_vel"]
+    n_arm_best = (d - 1) / 2
+    bonus = 0
+    if n_pendulum_rad == n_best:
+        bonus = 1
+    else:
+        bonus = 0
+    rew = 10
+    theta_diff = abs(n_arm_rad - n_arm_best) # 手前のうで
+    alpha_diff = abs(n_pendulum_rad - n_best) # 先端のほう
+    rew -= alpha_diff * 0.5
+    rew -= abs(sd["arm_vel"]) * 0.1
+    rew -= abs(sd["pendulum_vel"]) * 0.5
+    rew -= abs(theta_diff) * 0.1
+    return rew, 1 if bonus > 0 else 0
+
+def _reward_alpha_only(sd, config):
+    # 振り子角 alpha が中央（直立）に近いほど報酬を大きくする
+    d = config.num_digitized
+    n_best = (d - 1) / 2
+    err = abs(sd["n_pendulum_rad"] - n_best) / n_best 
+    # 0.0 〜 1.0。これを 1.0 から引いて報酬とする（err が小さいほど報酬が大きい）。
+    # さらに err < 0.5 を best として返す（倒立状態の維持に成功しているかの指標）。
+    return 1.0 - err, (1 if err < 0.5 else 0)
+
+def _reward_alpha_nonlinear(sd, config):
+    # 振り子角 alpha が中央（直立）に近いほど報酬を大きくする
+    # ルートとったver
+    d = config.num_digitized
+    n_best = (d - 1) / 2
+    err = abs(sd["n_pendulum_rad"] - n_best) / n_best 
+    # 0.0 〜 1.0。これを 1.0 から引いて報酬とする（err が小さいほど報酬が大きい）。
+    # さらに err < 0.5 を best として返す（倒立状態の維持に成功しているかの指標）。
+    return 1.0 - math.sqrt(err), (1 if err < 0.5 else 0)
+
+def _reward_theta_decline(sd, config):
+    # alpha_only をベースに
+    # 手前のうで theta が中央に近いほど報酬を大きくする
+    d = config.num_digitized
+    n_best = (d - 1) / 2
+
+    err_alpha = abs(sd["n_pendulum_rad"] - n_best) / n_best 
+    err_theta = abs(sd["n_arm_rad"] - n_best) / n_best 
+    return 1.0 - err_alpha - 0.1 * err_theta, (1 if err_alpha < 0.5 and err_theta < 0.5 else 0)
+
+
+def _reward_theta_decline_2(sd, config):
+    # alpha_only をベースに
+    # 手前のうで theta が中央に近いほど報酬を大きくする
+    d = config.num_digitized
+    n_best = (d - 1) / 2
+
+    err_alpha = abs(sd["n_pendulum_rad"] - n_best) / n_best 
+    err_theta = abs(sd["n_arm_rad"] - n_best) / n_best 
+    return 1.0 - err_alpha - 0.3 * err_theta, (1 if err_alpha < 0.5 and err_theta < 0.5 else 0)
+
+def _reward_theta_decline_3(sd, config):
+    # alpha_only をベースに
+    # 手前のうで theta が中央に近いほど報酬を大きくする
+    d = config.num_digitized
+    n_best = (d - 1) / 2
+
+    err_alpha = abs(sd["n_pendulum_rad"] - n_best) / n_best 
+    err_theta = abs(sd["n_arm_rad"] - n_best) / n_best 
+    return 1.0 - err_alpha - 0.6 * err_theta, (1 if err_alpha < 0.5 and err_theta < 0.5 else 0)
+
+def _reward_alpha_cos(sd, config):
+    # 離散インデックス差の abs ではなく、実角 alpha（連続値）の cos を報酬にする。
+    # 直立（alpha=0rad）で cos=1.0 が最大、傾くほど滑らかに減少する。
+    alpha = sd["pendulum_rad"]
+    rew = math.cos(alpha)
+    # best: 直立範囲（±0.20π）の半分以内に入っていれば成功とみなす
+    return rew, (1 if abs(alpha) < 0.10 * np.pi else 0)
+
+
+def _reward_alpha_cos_n(sd, config):
+    # 離散インデックス差の abs の cos を報酬にする。
+    # 直立で cos=1.0 が最大、傾くほど滑らかに減少する。
+    d = config.num_digitized
+    n_best = (d - 1) / 2
+    err_alpha = abs(sd["n_pendulum_rad"] - n_best) / n_best  # [0, 1]
+    rew = math.cos(err_alpha * np.pi / 2)  # [0, pi/2]のcos
+    # best: 直立範囲の半分以内に入っていれば成功とみなす
+    return rew, (1 if err_alpha < 0.5 else 0)
+
+
+REWARD_VARIANTS = {
+    "default": _reward_default,
+    "alpha_only": _reward_alpha_only,
+    "complex": _complex_reward,
+    "theta_decline": _reward_theta_decline,
+    "theta_decline_2": _reward_theta_decline_2,
+    "theta_decline_3": _reward_theta_decline_3,
+    "alpha_nonlinear": _reward_alpha_nonlinear,
+    "alpha_cos": _reward_alpha_cos,
+    "alpha_cos_n": _reward_alpha_cos_n,
+}
+
+
 class Balance:
 
     def __init__(self, config):
 
         self._config = config
         d = config.num_digitized
+        # 実機ランチャー（launch.py / launch_for_rl_policy.py）が参照する。
+        # ゼロベクトルなので離散化境界は変わらない。
+        self._arrange = np.zeros(d - 1)
         self._env = balance()
         self._pendulum_limit = (
             -0.20 * np.pi,
@@ -72,19 +192,9 @@ class Balance:
         if done:
             return -10, 0
 
-        # 報酬（rew）の設定
-        # rew の与え方を色々変更してみる
-        d = self._config.num_digitized
-        n_pendulum_rad, n_pendulum_vel = (
-            state_dict["n_pendulum_rad"],
-            state_dict["n_pendulum_vel"],
-        )
-        n_best = (d - 1) / 2
-        n_arm_rad, n_arm_vel = state_dict["n_arm_rad"], state_dict["n_arm_vel"]
-        n_arm_best = (d - 1) / 2
-        bonus = 0
-        rew = 0.1
-        return rew, 1 if bonus > 0 else 0
+        # 報酬（rew）の設定は env.py 上部の REWARD_VARIANTS から選ぶ
+        # （config.reward_variant で指定。sweep.py から SWEEP_REWARD で切替）
+        return REWARD_VARIANTS[self._config.reward_variant](state_dict, self._config)
 
     def _digitized_state(self, obs):
 

@@ -1,0 +1,9 @@
+name,ret,episode,ave_ep_len,ave_ep_rew
+run05_alpha_only_eps0.2_a0.5_g0.5_d8_na4,0,100000,68.26,44.64000000000001
+run04_alpha_only_eps0.2_a0.5_g0.75_d8_na4,0,100000,66.97,43.35571428571431
+run01_alpha_only_eps0.2_a0.5_g0.99_d8_na4,0,100000,62.775,37.48428571428572
+run07_alpha_only_eps0.2_a0.25_g0.99_d8_na4,0,100000,54.645,30.204285714285717
+run06_alpha_only_eps0.2_a0.75_g0.99_d8_na4,0,100000,47.56,24.987142857142832
+run03_default_eps0.2_a0.5_g0.99_d24_na4,0,100000,82.205,-1.1230000000000084
+run00_default_eps0.2_a0.5_g0.99_d8_na4,0,100000,51.145,-4.835000000000004
+run02_center_eps0.2_a0.5_g0.99_d12_na4,1,None,None,None

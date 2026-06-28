@@ -13,6 +13,7 @@ class Qtable:
         )
         self.gamma = config.gamma
         self.alpha = config.alpha
+        self.epsilon = getattr(config, "epsilon", 0.2)
         self.action_arr = np.arange(config.num_action)
 
     def load(self, path):
@@ -31,7 +32,7 @@ class Qtable:
             next_action = np.random.choice(self.action_arr, p=prob)
             return next_action
         elif method == "epsilon-greedy":
-            eps = 0.2
+            eps = self.epsilon
             p = np.random.random()
             if p < eps:
                 next_action = np.random.choice(self.action_arr)
