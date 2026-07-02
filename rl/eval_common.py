@@ -9,14 +9,17 @@
     Qテーブルはその符号化に紐づくため、これを揃えないと評価が壊れる。
 
 使い方:
-    python rl/eval_common.py [SWEEP_BATCH_DIR | all]
-  * 引数省略時は logs/train/sweep_* の最新バッチを自動評価する。
-  * "all" を渡すと logs/train 配下の sweep_* バッチを全部評価する。
-  各 run（qtable_*.npy を持つサブディレクトリ）を走査し、共通グリッドで評価して
-  バッチ直下に eval_summary.csv（成功率→平均生存ステップ順）を出力する。
-  all モードでは横断比較用に logs/train/eval_summary_all.csv も併せて出力する。
+    python rl/eval_common.py A.npy B.npy [C.npy ...]
+  * 比較したい qtable の .npy パスを並べて渡すだけ。共通の初期条件グリッドで
+    各モデルを評価し、成功率→平均生存ステップ順で並べて表示する。
+  * .npy のほか、run ディレクトリ（中の最新 qtable_*.npy を使う）や
+    ワイルドカード（"logs/train/**/qtable_*.npy" 等）も渡せる。
+  * 各 .npy の符号化/報酬は同じ dir の config.json（無ければ dir 名トークン＋
+    qtable 形状）から復元する。
+  * 結果は標準出力の表に加えて eval_summary.csv（カレントディレクトリ）にも出力する。
 """
 
+import glob as globmod
 import json
 import pathlib
 import sys
@@ -29,8 +32,6 @@ sys.path.append(str(directory))
 
 from env import make_env, REWARD_VARIANTS, DIGITIZE_VARIANTS  # noqa: E402
 from models import Qtable  # noqa: E402
-
-RL_DIR = pathlib.Path(__file__).resolve().parent
 
 # ----------------------------------------------------------------------
 # 共通テストバッテリ（初期条件グリッド）。ここを編集して試す範囲を変える。
@@ -93,19 +94,18 @@ def _recover_config(run_dir, qtable):
     return cfg
 
 
-def evaluate_run(run_dir):
-    """1 run を共通バッテリで評価し、指標 dict を返す（評価不能なら None）。"""
-    qpath = _latest_qtable(run_dir)
-    if qpath is None:
-        return None
+def evaluate_qtable(qpath, name=None):
+    """1 つの qtable(.npy) を共通バッテリで評価し、指標 dict を返す（評価不能なら None）。"""
+    qpath = pathlib.Path(qpath)
     qtable = np.load(qpath)
+    run_dir = qpath.parent
     cfg = _recover_config(run_dir, qtable)
 
     env = make_env(cfg)
     q = Qtable(cfg)
     q.load(qpath)
     if q._Qtable.shape != (cfg.state_size, cfg.num_action):
-        # 形状不一致（config と qtable が食い違う）の場合は qtable 側に合わせる
+        # 形状不一致（config と qtable が食い違う）の場合は評価不能
         return None
 
     total_steps = 0
@@ -134,7 +134,7 @@ def evaluate_run(run_dir):
 
     n = len(BATTERY)
     return {
-        "name": run_dir.name,
+        "name": name or run_dir.name,
         "d": cfg.num_digitized,
         "na": cfg.num_action,
         "digitize": cfg.digitize_variant,
@@ -154,22 +154,6 @@ COLS = ["name", "d", "na", "digitize", "reward", "n_ic",
         "fail_theta", "fail_alpha", "fail_both"]
 
 
-def _pick_batch_dirs():
-    """評価対象のバッチ dir 一覧を返す（引数なし=最新1件 / "all"=全件 / dir 指定）。"""
-    train_dir = RL_DIR / "logs" / "train"
-    if len(sys.argv) > 1:
-        if sys.argv[1] == "all":
-            sweeps = sorted(train_dir.glob("sweep_*"))
-            if not sweeps:
-                sys.exit("評価対象が見つかりません（logs/train/sweep_* が無い）。")
-            return sweeps
-        return [pathlib.Path(sys.argv[1])]
-    sweeps = sorted(train_dir.glob("sweep_*"))
-    if not sweeps:
-        sys.exit("評価対象が見つかりません。sweep バッチ dir を引数で指定してください。")
-    return [sweeps[-1]]
-
-
 def _write_csv(out_path, rows):
     with open(out_path, "w", encoding="utf-8") as f:
         print(",".join(COLS), file=f)
@@ -177,29 +161,82 @@ def _write_csv(out_path, rows):
             print(",".join(str(r.get(c, "")) for c in COLS), file=f)
 
 
-def evaluate_batch(batch_dir):
-    """1 バッチを評価し eval_summary.csv を書き出して、成功率降順の rows を返す。"""
-    run_dirs = sorted(p for p in batch_dir.iterdir()
-                      if p.is_dir() and any(p.glob("qtable_*.npy")))
-    if not run_dirs:
-        print(f"  (skip) qtable を持つ run が無い: {batch_dir.name}", flush=True)
-        return []
+def _resolve_npy_paths(args):
+    """引数（.npy / run dir / ワイルドカード）を .npy パスのリストに展開する。"""
+    out = []
+    for a in args:
+        if any(c in a for c in "*?["):  # ワイルドカード
+            matches = sorted(globmod.glob(a, recursive=True))
+            if not matches:
+                print(f"  (warn) マッチ無し: {a}", flush=True)
+            out.extend(pathlib.Path(m) for m in matches)
+            continue
+        p = pathlib.Path(a)
+        if p.is_dir():  # run ディレクトリ → 中の最新 qtable
+            latest = _latest_qtable(p)
+            if latest is None:
+                print(f"  (warn) qtable_*.npy が無い dir: {a}", flush=True)
+            else:
+                out.append(latest)
+            continue
+        out.append(p)
 
-    print(f"batch dir : {batch_dir}")
-    print(f"{len(run_dirs)} runs, battery {len(BATTERY)} 初期条件 x horizon {HORIZON}\n",
+    # .npy のみ＋実在のみに絞り、重複（同一実体）を順序維持で除去
+    seen, uniq = set(), []
+    for p in out:
+        if p.suffix != ".npy" or not p.exists():
+            continue
+        rp = p.resolve()
+        if rp not in seen:
+            seen.add(rp)
+            uniq.append(p)
+    return uniq
+
+
+def _make_names(paths):
+    """表示名を作る。基本は親 dir 名。重複する場合のみ qtable 名を付けて区別する。"""
+    counts = {}
+    for p in paths:
+        counts[p.parent.name] = counts.get(p.parent.name, 0) + 1
+    names = []
+    for p in paths:
+        base = p.parent.name
+        names.append(f"{base}/{p.stem}" if counts[base] > 1 else base)
+    return names
+
+
+def main():
+    args = sys.argv[1:]
+    if not args:
+        sys.exit(
+            "使い方: python rl/eval_common.py A.npy B.npy ...\n"
+            "  比較したい qtable の .npy パス（run dir / ワイルドカードも可）を渡してください。"
+        )
+
+    paths = _resolve_npy_paths(args)
+    if not paths:
+        sys.exit("評価できる .npy が見つかりませんでした。")
+    names = _make_names(paths)
+
+    print(f"{len(paths)} models, battery {len(BATTERY)} 初期条件 x horizon {HORIZON}\n",
           flush=True)
 
     rows = []
-    for rd in run_dirs:
-        print(f"  eval -> {rd.name}", flush=True)
-        res = evaluate_run(rd)
+    for p, nm in zip(paths, names):
+        print(f"  eval -> {nm}  ({p})", flush=True)
+        res = evaluate_qtable(p, name=nm)
         if res is not None:
             rows.append(res)
+        else:
+            print(f"    (skip) 形状不一致で評価不能: {p}", flush=True)
+
+    if not rows:
+        sys.exit("評価可能なモデルがありませんでした。")
 
     # 成功率 → 平均生存ステップ の降順
     rows.sort(key=lambda r: (r["success_rate"], r["mean_steps"]), reverse=True)
 
-    out = batch_dir / "eval_summary.csv"
+    out = pathlib.Path("eval_summary.csv").resolve()
     _write_csv(out, rows)
 
     print("\n==== common-test result (success_rate desc) ====", flush=True)
@@ -210,28 +247,6 @@ def evaluate_batch(batch_dir):
               f"{r['mean_abs_alpha']:>8.3f}  {r['digitize']:>12} "
               f"{r['reward']:>12}  {r['name']}", flush=True)
     print(f"\nsummary : {out}")
-    return rows
-
-
-def main():
-    batch_dirs = _pick_batch_dirs()
-    all_rows = []
-    for batch_dir in batch_dirs:
-        print(f"\n========== {batch_dir.name} ==========", flush=True)
-        for r in evaluate_batch(batch_dir):
-            all_rows.append({**r, "batch": batch_dir.name})
-
-    # 複数バッチを評価した場合は横断比較用 CSV をまとめて出力する
-    if len(batch_dirs) > 1:
-        all_rows.sort(key=lambda r: (r["success_rate"], r["mean_steps"]), reverse=True)
-        out_all = RL_DIR / "logs" / "train" / "eval_summary_all.csv"
-        with open(out_all, "w", encoding="utf-8") as f:
-            print("batch," + ",".join(COLS), file=f)
-            for r in all_rows:
-                print(r["batch"] + "," + ",".join(str(r.get(c, "")) for c in COLS),
-                      file=f)
-        print(f"\n==== all batches summary ({len(all_rows)} runs) ====")
-        print(f"combined summary : {out_all}")
 
 
 if __name__ == "__main__":

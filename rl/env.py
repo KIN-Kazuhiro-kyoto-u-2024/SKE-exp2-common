@@ -108,6 +108,15 @@ def _reward_theta_decline_3(sd, config):
     err_theta = abs(sd["n_arm_rad"] - n_best) / n_best 
     return 1.0 - err_alpha - 0.6 * err_theta, (1 if err_alpha < 0.5 and err_theta < 0.5 else 0)
 
+def _reward_theta3_nonlinear(sd, config):
+    # alpha_only をベースに
+    # 手前のうで theta が中央に近いほど報酬を大きくする
+    d = config.num_digitized
+    n_best = (d - 1) / 2
+    err_alpha = abs(sd["n_pendulum_rad"] - n_best) / n_best 
+    err_theta = abs(sd["n_arm_rad"] - n_best) / n_best 
+    return 1.0 - math.sqrt(err_alpha) - 0.6 * math.sqrt(err_theta), (1 if err_alpha < 0.5 and err_theta < 0.5 else 0)
+
 REWARD_VARIANTS = {
     "default": _reward_default,
     "alpha_only": _reward_alpha_only,
@@ -117,6 +126,7 @@ REWARD_VARIANTS = {
     "theta_decline_3": _reward_theta_decline_3,
     "alpha_nonlinear": _reward_alpha_nonlinear,
     "alpha_cos": _reward_alpha_cos,
+    "theta3_nonlinear": _reward_theta3_nonlinear,
 }
 
 

@@ -31,7 +31,7 @@ class EnvConfig:
     gamma: float = 0.99  # 割引率
     alpha: float = 0.5  # 学習率
     epsilon: float = 0.10  # epsilon-greedy の epsilon（models.py へ渡す）
-    reward_variant: str = "theta_decline_3"  # env.py の REWARD_VARIANTS のキー
+    reward_variant: str = "theta3_nonlinear"  # env.py の REWARD_VARIANTS のキー
     digitize_variant: str = "uniform"  # env.py の DIGITIZE_VARIANTS のキー（離散化方式）
     # balance 開始時の初期条件ランダム化範囲（[-range, +range] 一様）。既定は従来挙動。
     init_alpha_range: float = 0.1 * np.pi  # 振り子(elbow)初期角度
@@ -45,7 +45,7 @@ class EnvConfig:
     should_log_video: int = 1000  # 何 episode おきに QTable の評価をするか
     restore: bool = False  # 学習を再スタートする場合，これを True とする
     restore_path: str = ""  # QTable の初期値用データのパスを入力（再スタート時）
-    video_length: int = 200  # QTable 評価時におけるタイムステップ数
+    video_length: int = 2000  # QTable 評価時におけるタイムステップ数
     logdir: pathlib.Path = pathlib.Path().joinpath(
         "./logs/train", str(time.strftime("%m-%d-%H-%M-%S"))
     )
