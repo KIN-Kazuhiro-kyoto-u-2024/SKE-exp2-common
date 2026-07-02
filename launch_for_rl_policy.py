@@ -25,7 +25,7 @@ class EnvConfig:
 
     restore: bool = True
     # ここにシミュレータで学習した QTable のパス名を記載する
-    restore_path: str = "log_sim_only/qtable_final_21_5_theta3" \
+    restore_path: str = "log_sim_only/qtable_final_21_5_default" \
     ".npy"
 
     # 以下のパラメータは実機実験では関係なし
