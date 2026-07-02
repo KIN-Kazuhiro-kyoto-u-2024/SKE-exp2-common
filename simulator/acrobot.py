@@ -49,10 +49,20 @@ def swingup(time_limit=_DEFAULT_TIME_LIMIT, random=None,
 
 @SUITE.add('benchmarking')
 def balance(time_limit=_DEFAULT_TIME_LIMIT, random=None,
-            environment_kwargs=None):
-  """Returns Acrobot balance task."""
+            environment_kwargs=None,
+            init_elbow_range=(1/10)*np.pi, init_shoulder_range=0.0,
+            init_elbow_vel_range=0.0, init_shoulder_vel_range=0.0):
+  """Returns Acrobot balance task.
+
+  init_*_range: 各エピソード開始時の初期 qpos/qvel を [-range, +range] の一様乱数で
+    与える（学習できていない状態範囲のカバー用）。既定値は従来挙動。
+  """
   physics = Physics.from_xml_string(*get_model_and_assets())
-  task = Balance(sparse=False, do_swing=False, random=random)
+  task = Balance(sparse=False, do_swing=False, random=random,
+                 init_elbow_range=init_elbow_range,
+                 init_shoulder_range=init_shoulder_range,
+                 init_elbow_vel_range=init_elbow_vel_range,
+                 init_shoulder_vel_range=init_shoulder_vel_range)
   environment_kwargs = environment_kwargs or {}
   return control.Environment(
       physics, task, time_limit=time_limit, control_timestep=_CONTROL_TIMESTEP, **environment_kwargs)
@@ -97,7 +107,9 @@ class Physics(mujoco.Physics):
 class Balance(base.Task):
   """An Acrobot `Task` to  balance the pole."""
 
-  def __init__(self, sparse, do_swing=False, random=None):
+  def __init__(self, sparse, do_swing=False, random=None,
+               init_elbow_range=(1/10)*np.pi, init_shoulder_range=0.0,
+               init_elbow_vel_range=0.0, init_shoulder_vel_range=0.0):
     """Initializes an instance of `Balance`.
 
     Args:
@@ -105,9 +117,15 @@ class Balance(base.Task):
       random: Optional, either a `numpy.random.RandomState` instance, an
         integer seed for creating a new `RandomState`, or None to select a seed
         automatically (default).
+      init_*_range: balance 開始時の qpos/qvel を [-range, +range] の一様乱数で
+        初期化する範囲。既定値で従来挙動（elbow ±0.1π, 他 0）。
     """
     self._sparse = sparse
     self._do_swing = do_swing
+    self._init_elbow_range = init_elbow_range
+    self._init_shoulder_range = init_shoulder_range
+    self._init_elbow_vel_range = init_elbow_vel_range
+    self._init_shoulder_vel_range = init_shoulder_vel_range
     super().__init__(random=random)
 
   def initialize_episode(self, physics):
@@ -121,11 +139,19 @@ class Balance(base.Task):
     if self._do_swing:
       physics.named.data.qpos[
           ['elbow']] = self.random.uniform(-0.5*np.pi, 0.5*np.pi, 1)
-    else:
       physics.named.data.qpos[
-          ['elbow']] = self.random.uniform(-(1/10)*np.pi, (1/10)*np.pi, 1) 
-    physics.named.data.qpos[
-        ['shoulder']] = self.random.uniform(-0, 0, 1)
+          ['shoulder']] = self.random.uniform(-0, 0, 1)
+    else:
+      # balance: 初期 qpos/qvel を設定範囲の一様乱数で与える（範囲0なら従来通り固定）。
+      R = self.random.uniform
+      physics.named.data.qpos[['elbow']] = R(
+          -self._init_elbow_range, self._init_elbow_range, 1)
+      physics.named.data.qpos[['shoulder']] = R(
+          -self._init_shoulder_range, self._init_shoulder_range, 1)
+      physics.named.data.qvel[['elbow']] = R(
+          -self._init_elbow_vel_range, self._init_elbow_vel_range, 1)
+      physics.named.data.qvel[['shoulder']] = R(
+          -self._init_shoulder_vel_range, self._init_shoulder_vel_range, 1)
     # self.random.uniform(-np.pi, np.pi, 2)
     super().initialize_episode(physics)
 
