@@ -11,14 +11,13 @@ from rl.env import Balance, make_env
 from rl.models import Qtable
 from utils.logger import Logger
 
-
 @dataclass(frozen=True)
 class EnvConfig:
     domain: str = "double_pendulum"
     task: str = "balance"
     repeat: int = 2
-    num_digitized: int = 24  # 離散化の設定（学習時の設定値と合わせる）
-    num_action: int = 4  # 離散化の設定（学習時の設定値と合わせる）
+    num_digitized: int = 21  # 離散化の設定（学習時の設定値と合わせる）
+    num_action: int = 5  # 離散化の設定（学習時の設定値と合わせる）
     state_size: int = num_digitized**4
     logdir: pathlib.Path = pathlib.Path().joinpath(
         "./logs/real-by-rl", str(time.strftime("%m-%d-%H-%M-%S"))
@@ -26,7 +25,8 @@ class EnvConfig:
 
     restore: bool = True
     # ここにシミュレータで学習した QTable のパス名を記載する
-    restore_path: str = "log_sim_only/i4シンプル/qtable_100000.npy"
+    restore_path: str = "log_sim_only/qtable_final_21_5_alpha_cos" \
+    ".npy"
 
     # 以下のパラメータは実機実験では関係なし
     gamma: float = 0.99
@@ -105,6 +105,7 @@ class TrainedAgent:
             torque = self.env._digitized_action[digitized_action]
             self.data["n_alpha"].append(state_dict["n_pen_rad"])
             self.data["n_theta"].append(state_dict["n_arm_rad"])
+
             if done:
                 self.start = False
                 return 0
